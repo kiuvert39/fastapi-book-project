@@ -66,5 +66,5 @@ jobs:
 
         # Optionally, you can check if the app is running
         ps aux | grep uvicorn
-        
+
         EOF
