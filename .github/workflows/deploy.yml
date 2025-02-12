@@ -24,30 +24,47 @@ jobs:
         EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@51.20.55.19 << 'EOF'
+        # Define app directory path
+        APP_DIR="/home/ubuntu/my-app"
+        
         # Check if the directory exists
-        if [ ! -d "/home/ubuntu/my-app" ]; then
+        if [ ! -d "$APP_DIR" ]; then
           # If it doesn't exist, clone the repository
-          git clone https://github.com/kiuvert39/fastapi-book-project.git /home/ubuntu/my-app
+          echo "Cloning repository into $APP_DIR"
+          git clone https://github.com/kiuvert39/fastapi-book-project.git $APP_DIR
         else
           # If it exists, pull the latest changes
-          cd /home/ubuntu/my-app
+          echo "Pulling the latest changes in $APP_DIR"
+          cd $APP_DIR
           git pull origin main
         fi
         
         # Navigate to the app directory
-        cd /home/ubuntu/my-app
+        cd $APP_DIR
         
-        # Set up the virtual environment
-        python3 -m venv venv
+        # Check if the virtual environment exists
+        if [ ! -d "venv" ]; then
+          # If the virtual environment doesn't exist, create it
+          echo "Creating virtual environment"
+          python3 -m venv venv
+        fi
         
         # Activate the virtual environment
         source venv/bin/activate
         
         # Install dependencies
-        pip install -r requirements.txt
+        echo "Installing dependencies"
+        pip install --upgrade -r requirements.txt
         
-        # Run the FastAPI application
+        # Kill any existing FastAPI process (Optional, for a fresh start)
+        echo "Stopping any existing FastAPI app"
+        pkill -f uvicorn || true
+        
+        # Run the FastAPI application in the background
+        echo "Starting FastAPI application"
         nohup uvicorn main:app --host 127.0.0.1 --port 8000 &
 
-        # You can also add any additional commands to stop the app or restart it if needed
+        # Optionally, you can check if the app is running
+        ps aux | grep uvicorn
+        
         EOF
