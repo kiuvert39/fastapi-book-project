@@ -35,12 +35,12 @@ jobs:
         else
           # If it exists, pull the latest changes
           echo "Pulling the latest changes in $APP_DIR"
-          cd $APP_DIR
+          cd fastapi-book-project
           git pull origin main
         fi
 
         # Navigate to the app directory
-        cd $APP_DIR
+        cd fastapi-book-project
 
         # Install python3-venv if not installed
         sudo apt update
