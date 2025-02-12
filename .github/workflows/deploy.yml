@@ -24,8 +24,30 @@ jobs:
         EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
       run: |
         ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_IP << 'EOF'
-        cd /path/to/your/app
-        git pull origin main
-        docker-compose down
-        docker-compose up -d --build
+        # Check if the directory exists
+        if [ ! -d "/home/ubuntu/my-app" ]; then
+          # If it doesn't exist, clone the repository
+          git clone https://github.com/kiuvert39/fastapi-book-project.git /home/ubuntu/my-app
+        else
+          # If it exists, pull the latest changes
+          cd /home/ubuntu/my-app
+          git pull origin main
+        fi
+        
+        # Navigate to the app directory
+        cd /home/ubuntu/my-app
+        
+        # Set up the virtual environment
+        python3 -m venv venv
+        
+        # Activate the virtual environment
+        source venv/bin/activate
+        
+        # Install dependencies
+        pip install -r requirements.txt
+        
+        # Run the FastAPI application
+        nohup uvicorn main:app --host 127.0.0.1 --port 8000 &
+
+        # You can also add any additional commands to stop the app or restart it if needed
         EOF
