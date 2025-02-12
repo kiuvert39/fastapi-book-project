@@ -10,64 +10,62 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # Step 1: Checkout code from the GitHub repository
     - name: Checkout Code
       uses: actions/checkout@v2
 
+    # Step 2: Set up SSH agent for secure connection
     - name: Set up SSH Agent
       uses: webfactory/ssh-agent@v0.5.4
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+    # Step 3: Connect and deploy to EC2
     - name: Deploy to EC2
       env:
         EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@51.20.55.19 << 'EOF'
-        # Define the repository and app directory paths
-          REPO_URL="https://github.com/kiuvert39/fastapi-book-project.git"
-          APP_DIR="/home/ubuntu/fastapi-book-project"
+        ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_IP << 'EOF'
+        # Define variables
+        REPO_URL="https://github.com/kiuvert39/fastapi-book-project.git"
+        APP_DIR="/home/ubuntu/fastapi-book-project"
 
-          # Check if the directory exists, if not, clone the repository
-          if [ ! -d "$APP_DIR" ]; then
-            echo "Cloning repository into $APP_DIR"
-            git clone $REPO_URL $APP_DIR
-          else
-            echo "Pulling the latest changes in $APP_DIR"
-            cd $APP_DIR
-            git pull origin main
-          fi
-
-          # Navigate into the project directory
+        echo "Checking for application directory..."
+        # Clone repo if directory does not exist
+        if [ ! -d "$APP_DIR" ]; then
+          echo "Cloning repository into $APP_DIR"
+          git clone $REPO_URL $APP_DIR
+        else
+          echo "Pulling the latest changes in $APP_DIR"
           cd $APP_DIR
+          git reset --hard
+          git pull origin main
+        fi
 
-          # Check that we're in the right directory and the necessary files exist
-          echo "Current directory: $(pwd)"
-          ls -l
+        cd $APP_DIR
 
-          # Create a virtual environment if it doesn't exist
-          if [ ! -d "venv" ]; then
-            echo "Creating virtual environment"
-            python3 -m venv venv
-          fi
+        echo "Setting up virtual environment..."
+        # Create and activate virtual environment
+        if [ ! -d "venv" ]; then
+          python3 -m venv venv
+        fi
+        source venv/bin/activate
 
-          # Activate the virtual environment
-          source venv/bin/activate
+        echo "Installing dependencies..."
+        # Install dependencies
+        if [ -f "requirements.txt" ]; then
+          pip install --upgrade pip
+          pip install -r requirements.txt
+        else
+          pip install fastapi uvicorn
+        fi
 
-          # Install dependencies if requirements.txt is available
-          if [ -f "requirements.txt" ]; then
-            echo "Installing dependencies from requirements.txt"
-            pip install --upgrade -r requirements.txt
-          else
-            echo "requirements.txt not found, installing fastapi and uvicorn"
-            pip install fastapi uvicorn
-          fi
+        echo "Stopping existing application..."
+        # Stop existing app (if running)
+        pkill -f "uvicorn" || true
 
-          # Stop any existing FastAPI app
-          echo "Stopping any existing FastAPI app"
-          pkill -f "uvicorn"
-
-          # Start the FastAPI application
-          echo "Starting FastAPI application"
-          nohup uvicorn main:app --host 127.0.0.1 --port 8000 &
+        echo "Starting FastAPI application..."
+        # Start app using nohup to ensure it keeps running in the background
+        nohup uvicorn main:app --host 127.0.0.1 --port 8000 > app.log 2>&1 &
         EOF
