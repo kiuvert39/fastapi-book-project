@@ -1,3 +1,5 @@
+name: Deploy to EC2
+
 on:
   push:
     branches:
@@ -9,10 +11,10 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
 
     - name: Set up SSH Agent
-      uses: webfactory/ssh-agent@v0.5.3
+      uses: webfactory/ssh-agent@v0.5.4
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -21,7 +23,7 @@ jobs:
         EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@$51.20.55.19 << 'EOF'
+        ssh -o StrictHostKeyChecking=no ubuntu@51.20.55.19 << 'EOF'
         # Define the repository and app directory paths
           REPO_URL="https://github.com/kiuvert39/fastapi-book-project.git"
           APP_DIR="/home/ubuntu/fastapi-book-project"
@@ -65,25 +67,7 @@ jobs:
           echo "Stopping any existing FastAPI app"
           pkill -f "uvicorn"
 
-          # Start FastAPI in the background
+          # Start the FastAPI application
           echo "Starting FastAPI application"
-          nohup uvicorn main:app --host 127.0.0.1 --port 8000 > fastapi_app.log 2>&1 &
-
-          # Wait a bit to ensure the server is up
-          sleep 10
-
-          # Check if the app is running, retry a couple of times if it fails
-          for i in {1..5}; do
-            if curl -s http://127.0.0.1:8000; then
-              echo "FastAPI app is running!"
-              break
-            else
-              echo "FastAPI app not running, retrying... ($i/5)"
-              sleep 5
-            fi
-          done
-
-          # Optionally, you can tail the log file to check the app's output
-          tail -f fastapi_app.log
-
+          nohup uvicorn main:app --host 127.0.0.1 --port 8000 &
         EOF
