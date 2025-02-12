@@ -67,7 +67,18 @@ jobs:
           echo "Stopping any existing FastAPI app"
           pkill -f "uvicorn"
 
-          # Start the FastAPI application
-          echo "Starting FastAPI application"
-          nohup uvicorn main:app --host 127.0.0.1 --port 8000 &
+          # Stop any existing FastAPI app
+        echo "Stopping any existing FastAPI app"
+        pkill -f "uvicorn"
+
+        # Start FastAPI in the background
+        echo "Starting FastAPI application"
+        nohup uvicorn main:app --host 127.0.0.1 --port 8000 > fastapi_app.log 2>&1 &
+
+        # Wait a bit to ensure the server is up
+        sleep 5
+
+        # Optionally check if it's running (this can be helpful for debugging)
+        curl http://127.0.0.1:8000 || echo "FastAPI app not running!"
+
         EOF
