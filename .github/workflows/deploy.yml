@@ -67,5 +67,13 @@ jobs:
 
         echo "Starting FastAPI application..."
         # Start app using nohup to ensure it keeps running in the background
-        nohup uvicorn main:app --host 127.0.0.1 --port 8000 > app.log 2>&1 &
+        nohup uvicorn main:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &
+
+        echo "Waiting for application to start..."
+        # Give the application some time to start
+        sleep 5
+
+        echo "Testing application health..."
+        # Test the application health
+        curl -f http://127.0.0.1:8000/healthcheck || echo "Healthcheck failed"
         EOF
